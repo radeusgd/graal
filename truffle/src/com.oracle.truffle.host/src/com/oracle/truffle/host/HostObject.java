@@ -41,6 +41,7 @@
 package com.oracle.truffle.host;
 
 import java.lang.reflect.Array;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -1388,54 +1389,90 @@ final class HostObject implements TruffleObject {
         return c == Byte.class || c == Short.class || c == Integer.class || c == Long.class || c == Float.class || c == Double.class || c == BigInteger.class;
     }
 
-    private static boolean isJavaPrimitiveNumber(Object value) {
+    private static boolean isJavaSupportedNumber(Object value) {
         return value instanceof Byte || value instanceof Short || value instanceof Integer || value instanceof Long || value instanceof Float || value instanceof Double || value instanceof BigInteger;
     }
 
     @ExportMessage
     boolean fitsInByte(@CachedLibrary("this") InteropLibrary thisLibrary,
-                    @Shared("numbers") @CachedLibrary(limit = "LIMIT") InteropLibrary numbers) {
-        if (thisLibrary.isNumber(this)) {
+                    @Shared("numbers") @CachedLibrary(limit = "LIMIT") InteropLibrary numbers,
+                    @Shared("classProfile") @Cached("createClassProfile()") ValueProfile classProfile) {
+        if (!isNull() && classProfile.profile(obj).getClass() == BigInteger.class) {
+            return bigIntegerFitsInByte(obj);
+        } else if (thisLibrary.isNumber(this)) {
             return numbers.fitsInByte(obj);
         } else {
             return false;
         }
     }
 
+    @TruffleBoundary
+    static boolean bigIntegerFitsInByte(Object b) {
+        return ((BigInteger) b).bitLength() < Byte.SIZE;
+    }
+
     @ExportMessage
     boolean fitsInShort(@CachedLibrary("this") InteropLibrary thisLibrary,
-                    @Shared("numbers") @CachedLibrary(limit = "LIMIT") InteropLibrary numbers) {
-        if (thisLibrary.isNumber(this)) {
+                    @Shared("numbers") @CachedLibrary(limit = "LIMIT") InteropLibrary numbers,
+                    @Shared("classProfile") @Cached("createClassProfile()") ValueProfile classProfile) {
+        if (!isNull() && classProfile.profile(obj).getClass() == BigInteger.class) {
+            return bigIntegerFitsInShort(obj);
+        } else if (thisLibrary.isNumber(this)) {
             return numbers.fitsInShort(obj);
         } else {
             return false;
         }
     }
 
+    @TruffleBoundary
+    static boolean bigIntegerFitsInShort(Object b) {
+        return ((BigInteger) b).bitLength() < Short.SIZE;
+    }
+
     @ExportMessage
     boolean fitsInInt(@CachedLibrary("this") InteropLibrary thisLibrary,
-                    @Shared("numbers") @CachedLibrary(limit = "LIMIT") InteropLibrary numbers) {
-        if (thisLibrary.isNumber(this)) {
+                    @Shared("numbers") @CachedLibrary(limit = "LIMIT") InteropLibrary numbers,
+                    @Shared("classProfile") @Cached("createClassProfile()") ValueProfile classProfile) {
+        if (!isNull() && classProfile.profile(obj).getClass() == BigInteger.class) {
+            return bigIntegerFitsInInt(obj);
+        } else if (thisLibrary.isNumber(this)) {
             return numbers.fitsInInt(obj);
         } else {
             return false;
         }
     }
 
+    @TruffleBoundary
+    static boolean bigIntegerFitsInInt(Object b) {
+        return ((BigInteger) b).bitLength() < Integer.SIZE;
+    }
+
     @ExportMessage
     boolean fitsInLong(@CachedLibrary("this") InteropLibrary thisLibrary,
-                    @Shared("numbers") @CachedLibrary(limit = "LIMIT") InteropLibrary numbers) {
-        if (thisLibrary.isNumber(this)) {
+                    @Shared("numbers") @CachedLibrary(limit = "LIMIT") InteropLibrary numbers,
+                    @Shared("classProfile") @Cached("createClassProfile()") ValueProfile classProfile) {
+        if (!isNull() && classProfile.profile(obj).getClass() == BigInteger.class) {
+            return bigIntegerFitsInLong(obj);
+        } else if (thisLibrary.isNumber(this)) {
             return numbers.fitsInLong(obj);
         } else {
             return false;
         }
     }
 
+    @TruffleBoundary
+    static boolean bigIntegerFitsInLong(Object b) {
+        return ((BigInteger) b).bitLength() < Long.SIZE;
+    }
+
     @ExportMessage
     boolean fitsInBigInteger(@CachedLibrary("this") InteropLibrary thisLibrary,
-                    @Shared("numbers") @CachedLibrary(limit = "LIMIT") InteropLibrary numbers) {
-        if (thisLibrary.isNumber(this)) {
+                    @Shared("numbers") @CachedLibrary(limit = "LIMIT") InteropLibrary numbers,
+                    @Shared("classProfile") @Cached("createClassProfile()") ValueProfile classProfile) {
+
+        if (!isNull() && classProfile.profile(obj).getClass() == BigInteger.class) {
+            return true;
+        } else if (thisLibrary.isNumber(this)) {
             return numbers.fitsInBigInteger(obj);
         } else {
             return false;
@@ -1444,31 +1481,80 @@ final class HostObject implements TruffleObject {
 
     @ExportMessage
     boolean fitsInFloat(@CachedLibrary("this") InteropLibrary thisLibrary,
-                    @Shared("numbers") @CachedLibrary(limit = "LIMIT") InteropLibrary numbers) {
-        if (thisLibrary.isNumber(this)) {
+                    @Shared("numbers") @CachedLibrary(limit = "LIMIT") InteropLibrary numbers,
+                    @Shared("classProfile") @Cached("createClassProfile()") ValueProfile classProfile) {
+        if (!isNull() && classProfile.profile(obj).getClass() == BigInteger.class) {
+            return bigIntegerFitsInFloat(obj);
+        } else if (thisLibrary.isNumber(this)) {
             return numbers.fitsInFloat(obj);
         } else {
             return false;
         }
     }
 
+    @TruffleBoundary
+    static boolean bigIntegerFitsInFloat(Object obj) {
+        BigInteger b = (BigInteger) obj;
+        if (b.bitLength() <= 24) { // 24 = size of float mantissa + 1
+            return true;
+        } else {
+            float floatValue = b.floatValue();
+            if (!Float.isFinite(floatValue)) {
+                return false;
+            }
+            return new BigDecimal(floatValue).toBigIntegerExact().equals(b);
+        }
+    }
+
     @ExportMessage
     boolean fitsInDouble(@CachedLibrary("this") InteropLibrary thisLibrary,
-                    @Shared("numbers") @CachedLibrary(limit = "LIMIT") InteropLibrary numbers) {
-        if (thisLibrary.isNumber(this)) {
+                    @Shared("numbers") @CachedLibrary(limit = "LIMIT") InteropLibrary numbers,
+                    @Shared("classProfile") @Cached("createClassProfile()") ValueProfile classProfile) {
+
+        if (!isNull() && classProfile.profile(obj).getClass() == BigInteger.class) {
+            return bigIntegerFitsInDouble(obj);
+        } else if (thisLibrary.isNumber(this)) {
             return numbers.fitsInDouble(obj);
         } else {
             return false;
         }
     }
 
+    @TruffleBoundary
+    static boolean bigIntegerFitsInDouble(Object obj) {
+        BigInteger b = (BigInteger) obj;
+        if (b.bitLength() <= 53) { // 53 = size of double mantissa + 1
+            return true;
+        } else {
+            double doubleValue = b.doubleValue();
+            if (!Double.isFinite(doubleValue)) {
+                return false;
+            }
+            return new BigDecimal(doubleValue).toBigIntegerExact().equals(b);
+        }
+    }
+
     @ExportMessage
     byte asByte(@CachedLibrary("this") InteropLibrary thisLibrary,
                     @Shared("numbers") @CachedLibrary(limit = "LIMIT") InteropLibrary numbers,
+                    @Shared("classProfile") @Cached("createClassProfile()") ValueProfile classProfile,
                     @Shared("error") @Cached BranchProfile error) throws UnsupportedMessageException {
-        if (thisLibrary.isNumber(this)) {
+        if (!isNull() && classProfile.profile(obj).getClass() == BigInteger.class) {
+            return bigIntegerAsByte(obj, error);
+        } else if (thisLibrary.isNumber(this)) {
             return numbers.asByte(obj);
         } else {
+            error.enter();
+            throw UnsupportedMessageException.create();
+        }
+    }
+
+    @TruffleBoundary
+    // TODO does it make sense to pass branch profile into a TruffleBoundary?
+    static byte bigIntegerAsByte(Object b, BranchProfile error) throws UnsupportedMessageException {
+        try {
+            return ((BigInteger) b).byteValueExact();
+        } catch (ArithmeticException e) {
             error.enter();
             throw UnsupportedMessageException.create();
         }
@@ -1477,10 +1563,24 @@ final class HostObject implements TruffleObject {
     @ExportMessage
     short asShort(@CachedLibrary("this") InteropLibrary thisLibrary,
                     @Shared("numbers") @CachedLibrary(limit = "LIMIT") InteropLibrary numbers,
+                    @Shared("classProfile") @Cached("createClassProfile()") ValueProfile classProfile,
                     @Shared("error") @Cached BranchProfile error) throws UnsupportedMessageException {
-        if (thisLibrary.isNumber(this)) {
+        if (!isNull() && classProfile.profile(obj).getClass() == BigInteger.class) {
+            return bigIntegerAsShort(obj, error);
+        } else if (thisLibrary.isNumber(this)) {
             return numbers.asShort(obj);
         } else {
+            error.enter();
+            throw UnsupportedMessageException.create();
+        }
+    }
+
+    @TruffleBoundary
+    // TODO does it make sense to pass branch profile into a TruffleBoundary?
+    static short bigIntegerAsShort(Object b, BranchProfile error) throws UnsupportedMessageException {
+        try {
+            return ((BigInteger) b).shortValueExact();
+        } catch (ArithmeticException e) {
             error.enter();
             throw UnsupportedMessageException.create();
         }
@@ -1489,10 +1589,24 @@ final class HostObject implements TruffleObject {
     @ExportMessage
     int asInt(@CachedLibrary("this") InteropLibrary thisLibrary,
                     @Shared("numbers") @CachedLibrary(limit = "LIMIT") InteropLibrary numbers,
+                    @Shared("classProfile") @Cached("createClassProfile()") ValueProfile classProfile,
                     @Shared("error") @Cached BranchProfile error) throws UnsupportedMessageException {
-        if (thisLibrary.isNumber(this)) {
+        if (!isNull() && classProfile.profile(obj).getClass() == BigInteger.class) {
+            return bigIntegerAsInt(obj, error);
+        } else if (thisLibrary.isNumber(this)) {
             return numbers.asInt(obj);
         } else {
+            error.enter();
+            throw UnsupportedMessageException.create();
+        }
+    }
+
+    @TruffleBoundary
+    // TODO does it make sense to pass branch profile into a TruffleBoundary?
+    static int bigIntegerAsInt(Object b, BranchProfile error) throws UnsupportedMessageException {
+        try {
+            return ((BigInteger) b).intValueExact();
+        } catch (ArithmeticException e) {
             error.enter();
             throw UnsupportedMessageException.create();
         }
@@ -1501,10 +1615,24 @@ final class HostObject implements TruffleObject {
     @ExportMessage
     long asLong(@CachedLibrary("this") InteropLibrary thisLibrary,
                     @Shared("numbers") @CachedLibrary(limit = "LIMIT") InteropLibrary numbers,
+                    @Shared("classProfile") @Cached("createClassProfile()") ValueProfile classProfile,
                     @Shared("error") @Cached BranchProfile error) throws UnsupportedMessageException {
-        if (thisLibrary.isNumber(this)) {
+        if (!isNull() && classProfile.profile(obj).getClass() == BigInteger.class) {
+            return bigIntegerAsLong(obj, error);
+        } else if (thisLibrary.isNumber(this)) {
             return numbers.asLong(obj);
         } else {
+            error.enter();
+            throw UnsupportedMessageException.create();
+        }
+    }
+
+    @TruffleBoundary
+    // TODO does it make sense to pass branch profile into a TruffleBoundary?
+    static long bigIntegerAsLong(Object b, BranchProfile error) throws UnsupportedMessageException {
+        try {
+            return ((BigInteger) b).longValueExact();
+        } catch (ArithmeticException e) {
             error.enter();
             throw UnsupportedMessageException.create();
         }
@@ -1513,10 +1641,24 @@ final class HostObject implements TruffleObject {
     @ExportMessage
     BigInteger asBigInteger(@CachedLibrary("this") InteropLibrary thisLibrary,
                     @Shared("numbers") @CachedLibrary(limit = "LIMIT") InteropLibrary numbers,
+                    @Shared("classProfile") @Cached("createClassProfile()") ValueProfile classProfile,
                     @Shared("error") @Cached BranchProfile error) throws UnsupportedMessageException {
-        if (thisLibrary.isNumber(this)) {
+        if (!isNull() && classProfile.profile(obj).getClass() == BigInteger.class) {
+            return bigIntegerAsBigInteger(obj, error);
+        } else if (thisLibrary.isNumber(this)) {
             return numbers.asBigInteger(obj);
         } else {
+            error.enter();
+            throw UnsupportedMessageException.create();
+        }
+    }
+
+    @TruffleBoundary
+    // TODO does it make sense to pass branch profile into a TruffleBoundary?
+    static BigInteger bigIntegerAsBigInteger(Object b, BranchProfile error) throws UnsupportedMessageException {
+        try {
+            return new BigInteger(((BigInteger) b).toByteArray());
+        } catch (ArithmeticException e) {
             error.enter();
             throw UnsupportedMessageException.create();
         }
@@ -1525,8 +1667,11 @@ final class HostObject implements TruffleObject {
     @ExportMessage
     float asFloat(@CachedLibrary("this") InteropLibrary thisLibrary,
                     @Shared("numbers") @CachedLibrary(limit = "LIMIT") InteropLibrary numbers,
+                    @Shared("classProfile") @Cached("createClassProfile()") ValueProfile classProfile,
                     @Shared("error") @Cached BranchProfile error) throws UnsupportedMessageException {
-        if (thisLibrary.isNumber(this)) {
+        if (!isNull() && classProfile.profile(obj).getClass() == BigInteger.class && bigIntegerFitsInFloat(obj)) {
+            return bigIntegerAsFloat(obj);
+        } else if (thisLibrary.isNumber(this)) {
             return numbers.asFloat(obj);
         } else {
             error.enter();
@@ -1534,16 +1679,29 @@ final class HostObject implements TruffleObject {
         }
     }
 
+    @TruffleBoundary
+    static float bigIntegerAsFloat(Object b) {
+        return ((BigInteger) b).floatValue();
+    }
+
     @ExportMessage
     double asDouble(@CachedLibrary("this") InteropLibrary thisLibrary,
                     @Shared("numbers") @CachedLibrary(limit = "LIMIT") InteropLibrary numbers,
+                    @Shared("classProfile") @Cached("createClassProfile()") ValueProfile classProfile,
                     @Shared("error") @Cached BranchProfile error) throws UnsupportedMessageException {
-        if (thisLibrary.isNumber(this)) {
+        if (!isNull() && classProfile.profile(obj).getClass() == BigInteger.class && bigIntegerFitsInDouble(obj)) {
+            return bigIntegerAsDouble(obj);
+        } else if (thisLibrary.isNumber(this)) {
             return numbers.asDouble(obj);
         } else {
             error.enter();
             throw UnsupportedMessageException.create();
         }
+    }
+
+    @TruffleBoundary
+    static double bigIntegerAsDouble(Object b) {
+        return ((BigInteger) b).doubleValue();
     }
 
     @ExportMessage
@@ -1816,7 +1974,7 @@ final class HostObject implements TruffleObject {
                         } else if (thisLib.isString(hostObject)) {
                             return thisLib.asString(hostObject);
                         } else if (thisLib.isNumber(hostObject)) {
-                            assert isJavaPrimitiveNumber(javaObject) : javaObject;
+                            assert isJavaSupportedNumber(javaObject) : javaObject;
                             return javaObject.toString();
                         } else if (thisLib.isMemberInvocable(hostObject, "toString")) {
                             Object result = thisLib.invokeMember(hostObject, "toString");

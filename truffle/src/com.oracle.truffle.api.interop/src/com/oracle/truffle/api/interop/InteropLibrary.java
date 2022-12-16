@@ -185,7 +185,6 @@ import com.oracle.truffle.api.utilities.TriState;
 @DefaultExport(DefaultByteExports.class)
 @DefaultExport(DefaultShortExports.class)
 @DefaultExport(DefaultLongExports.class)
-@DefaultExport(DefaultBigIntegerExports.class)
 @DefaultExport(DefaultFloatExports.class)
 @DefaultExport(DefaultDoubleExports.class)
 @DefaultExport(DefaultCharacterExports.class)

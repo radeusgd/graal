@@ -160,31 +160,6 @@ public class InteropDefaultsTest extends InteropLibraryBaseTest {
     }
 
     @Test
-    public void testBigIntegerDefault() throws InteropException {
-        assertNumber(BigInteger.valueOf(Long.MIN_VALUE), false, false, false, true, true, true, true);
-        assertNumber(BigInteger.valueOf((long) Integer.MIN_VALUE - 1), false, false, false, true, true, false, true);
-        assertNumber(BigInteger.valueOf((long) Integer.MIN_VALUE), false, false, true, true, true, true, true);
-        assertNumber(BigInteger.valueOf((long) Short.MIN_VALUE - 1), false, false, true, true, true, true, true);
-        assertNumber(BigInteger.valueOf((long) Short.MIN_VALUE), false, true, true, true, true, true, true);
-        assertNumber(BigInteger.valueOf((long) Byte.MIN_VALUE - 1), false, true, true, true, true, true, true);
-        assertNumber(BigInteger.valueOf((long) Byte.MIN_VALUE), true, true, true, true, true, true, true);
-        assertNumber(BigInteger.valueOf(0L), true, true, true, true, true, true, true);
-        assertNumber(BigInteger.valueOf((long) Byte.MAX_VALUE), true, true, true, true, true, true, true);
-        assertNumber(BigInteger.valueOf((long) Byte.MAX_VALUE + 1), false, true, true, true, true, true, true);
-        assertNumber(BigInteger.valueOf((long) Short.MAX_VALUE), false, true, true, true, true, true, true);
-        assertNumber(BigInteger.valueOf((long) Short.MAX_VALUE + 1), false, false, true, true, true, true, true);
-        assertNumber(BigInteger.valueOf((long) Integer.MAX_VALUE), false, false, true, true, true, false, true);
-        assertNumber(BigInteger.valueOf(1L << 24), false, false, true, true, true, true, true);
-        assertNumber(BigInteger.valueOf((1L << 24) + 1), false, false, true, true, true, false, true);
-        assertNumber(BigInteger.valueOf(1L << 25), false, false, true, true, true, true, true);
-        assertNumber(BigInteger.valueOf((1L << 53) + 1), false, false, false, true, true, false, false);
-        assertNumber(BigInteger.valueOf(1L << 54), false, false, false, true, true, true, true);
-        assertNumber(BigInteger.valueOf(Long.MAX_VALUE), false, false, false, true, true, false, false);
-        assertNumber(new BigInteger(Long.toString(Long.MAX_VALUE) + Long.toString(Long.MAX_VALUE)), false, false, false, false, true, false, false);
-        assertNumber(new BigInteger(Long.toString(Long.MIN_VALUE) + Long.toString(Long.MAX_VALUE)), false, false, false, false, true, false, false);
-    }
-
-    @Test
     public void testFloatDefault() throws InteropException {
         assertNumber(Float.NEGATIVE_INFINITY, false, false, false, false, false, true, true);
         assertNumber((float) Long.MIN_VALUE, false, false, false, true, true, true, true);

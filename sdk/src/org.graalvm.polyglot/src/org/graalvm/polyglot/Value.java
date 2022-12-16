@@ -1078,10 +1078,6 @@ public final class Value extends AbstractValue {
         return dispatch.fitsInLong(this.context, receiver);
     }
 
-    public boolean fitsInBigInteger() {
-        return dispatch.fitsInBigInteger(this.context, receiver);
-    }
-
     /**
      * Returns a <code>long</code> representation of this value if it is {@link #isNumber() number}
      * and the value {@link #fitsInLong() fits}.
@@ -1094,6 +1090,10 @@ public final class Value extends AbstractValue {
      */
     public long asLong() {
         return dispatch.asLong(this.context, receiver);
+    }
+
+    public boolean fitsInBigInteger() {
+        return dispatch.fitsInBigInteger(this.context, receiver);
     }
 
     public BigInteger asBigInteger() {
