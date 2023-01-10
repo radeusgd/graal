@@ -1380,13 +1380,14 @@ final class HostObject implements TruffleObject {
     }
 
     @ExportMessage
-    boolean isNumber(@Shared("classProfile") @Cached("createClassProfile()") ValueProfile classProfile) {
+    boolean isNumber(@Shared("classProfile") @Cached("createClassProfile()") ValueProfile classProfile,
+                    @Cached(value = "this.isBigIntegerNumberAccess()", allowUncached = true) boolean bigIntegerNumberAccess) {
         if (isNull()) {
             return false;
         }
 
         Class<?> c = classProfile.profile(obj).getClass();
-        return c == Byte.class || c == Short.class || c == Integer.class || c == Long.class || c == Float.class || c == Double.class || c == BigInteger.class;
+        return c == Byte.class || c == Short.class || c == Integer.class || c == Long.class || c == Float.class || c == Double.class || (c == BigInteger.class && bigIntegerNumberAccess);
     }
 
     private static boolean isJavaSupportedNumber(Object value) {
@@ -2506,6 +2507,14 @@ final class HostObject implements TruffleObject {
     HostClassCache getHostClassCache() {
         assert context != null : "host cache must not be used for null";
         return HostClassCache.forInstance(this);
+    }
+
+    boolean isBigIntegerNumberAccess() {
+        if (context != null) {
+            return getHostClassCache().isBigIntegerNumberAccess();
+        } else {
+            return true;
+        }
     }
 
     @ExportMessage

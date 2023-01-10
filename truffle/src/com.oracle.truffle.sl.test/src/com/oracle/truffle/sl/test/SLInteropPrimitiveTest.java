@@ -84,10 +84,10 @@ public class SLInteropPrimitiveTest {
         final Source src = Source.newBuilder("sl", "function addNum(a,b) {return a + b;} function main() {return addNum;}", "addNum.sl").buildLiteral();
         final Value fnc = context.eval(src);
         Assert.assertTrue(fnc.canExecute());
-        System.out.println(fnc.execute(20, 22));
-        System.out.println(fnc.execute(Long.MAX_VALUE, Long.MAX_VALUE));
-        System.out.println(fnc.execute(BigInteger.valueOf(Long.MAX_VALUE).add(BigInteger.ONE), Long.MAX_VALUE));
-        System.out.println(fnc.execute(BigInteger.valueOf(Long.MAX_VALUE), BigInteger.valueOf(Long.MAX_VALUE).add(BigInteger.ONE)));
-        System.out.println(fnc.execute(BigInteger.valueOf(Long.MAX_VALUE).add(BigInteger.ONE), BigInteger.valueOf(Long.MAX_VALUE).add(BigInteger.ONE)));
+        Assert.assertEquals(42, fnc.execute(20, 22).asInt());
+        Assert.assertEquals(new BigInteger("18446744073709551614"), fnc.execute(Long.MAX_VALUE, Long.MAX_VALUE).asBigInteger());
+        Assert.assertEquals(new BigInteger("18446744073709551616"), fnc.execute(BigInteger.valueOf(Long.MAX_VALUE).add(BigInteger.TWO), Long.MAX_VALUE).asBigInteger());
+        Assert.assertEquals(new BigInteger("18446744073709551616"), fnc.execute(BigInteger.valueOf(Long.MAX_VALUE), BigInteger.valueOf(Long.MAX_VALUE).add(BigInteger.TWO)).asBigInteger());
+        Assert.assertEquals(new BigInteger("18446744073709551618"), fnc.execute(BigInteger.valueOf(Long.MAX_VALUE).add(BigInteger.TWO), BigInteger.valueOf(Long.MAX_VALUE).add(BigInteger.TWO)).asBigInteger());
     }
 }

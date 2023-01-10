@@ -40,9 +40,14 @@
  */
 package com.oracle.truffle.sl.nodes.expression;
 
+import static com.oracle.truffle.api.CompilerDirectives.shouldNotReachHere;
+
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.sl.SLException;
 import com.oracle.truffle.sl.nodes.SLBinaryNode;
@@ -55,14 +60,26 @@ import com.oracle.truffle.sl.runtime.SLBigNumber;
 public abstract class SLMulNode extends SLBinaryNode {
 
     @Specialization(rewriteOn = ArithmeticException.class)
-    protected long mul(long left, long right) {
+    protected long doLong(long left, long right) {
         return Math.multiplyExact(left, right);
     }
 
     @Specialization
     @TruffleBoundary
-    protected SLBigNumber mul(SLBigNumber left, SLBigNumber right) {
+    protected SLBigNumber doSLBigInteger(SLBigNumber left, SLBigNumber right) {
         return new SLBigNumber(left.getValue().multiply(right.getValue()));
+    }
+
+    @Specialization(replaces = "doSLBigInteger", guards = {"leftLibrary.fitsInBigInteger(left)", "rightLibrary.fitsInBigInteger(right)"}, limit = "3")
+    @TruffleBoundary
+    protected SLBigNumber doInteropBigInteger(Object left, Object right,
+                    @CachedLibrary("left") InteropLibrary leftLibrary,
+                    @CachedLibrary("right") InteropLibrary rightLibrary) {
+        try {
+            return new SLBigNumber(leftLibrary.asBigInteger(left).multiply(rightLibrary.asBigInteger(right)));
+        } catch (UnsupportedMessageException e) {
+            throw shouldNotReachHere(e);
+        }
     }
 
     @Fallback

@@ -108,10 +108,10 @@ public abstract class SLUnboxNode extends SLExpressionNode {
         try {
             if (interop.fitsInLong(value)) {
                 return interop.asLong(value);
-            } else if (interop.fitsInBigInteger(value)) {
-                return new SLBigNumber(interop.asBigInteger(value));
-            } else if (interop.fitsInDouble(value)) {
+            } else if (interop.fitsInDouble(value) && !interop.fitsInBigInteger(value)) {
                 return (long) interop.asDouble(value);
+            } else if (interop.fitsInBigInteger(value)) {
+                return value;
             } else if (interop.isString(value)) {
                 return interop.asTruffleString(value);
             } else if (interop.isBoolean(value)) {

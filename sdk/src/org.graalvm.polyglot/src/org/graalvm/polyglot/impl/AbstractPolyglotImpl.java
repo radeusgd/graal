@@ -239,6 +239,8 @@ public abstract class AbstractPolyglotImpl {
 
         public abstract boolean isMapAccessible(HostAccess access);
 
+        public abstract boolean isBigIntegerAccessibleAsNumber(HostAccess access);
+
         public abstract boolean allowsPublicAccess(HostAccess hostAccess);
 
         public abstract boolean allowsAccessInheritance(HostAccess hostAccess);

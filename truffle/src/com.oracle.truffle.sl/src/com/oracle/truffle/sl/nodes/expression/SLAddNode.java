@@ -40,11 +40,16 @@
  */
 package com.oracle.truffle.sl.nodes.expression;
 
+import static com.oracle.truffle.api.CompilerDirectives.shouldNotReachHere;
+
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.ImplicitCast;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.strings.TruffleString;
 import com.oracle.truffle.sl.SLException;
@@ -83,7 +88,7 @@ public abstract class SLAddNode extends SLBinaryNode {
      * operand are {@code long} values.
      */
     @Specialization(rewriteOn = ArithmeticException.class)
-    protected long add(long left, long right) {
+    protected long doLong(long left, long right) {
         return Math.addExact(left, right);
     }
 
@@ -101,8 +106,20 @@ public abstract class SLAddNode extends SLBinaryNode {
      */
     @Specialization
     @TruffleBoundary
-    protected SLBigNumber add(SLBigNumber left, SLBigNumber right) {
+    protected SLBigNumber doSLBigInteger(SLBigNumber left, SLBigNumber right) {
         return new SLBigNumber(left.getValue().add(right.getValue()));
+    }
+
+    @Specialization(replaces = "doSLBigInteger", guards = {"leftLibrary.fitsInBigInteger(left)", "rightLibrary.fitsInBigInteger(right)"}, limit = "3")
+    @TruffleBoundary
+    protected SLBigNumber doInteropBigInteger(Object left, Object right,
+                    @CachedLibrary("left") InteropLibrary leftLibrary,
+                    @CachedLibrary("right") InteropLibrary rightLibrary) {
+        try {
+            return new SLBigNumber(leftLibrary.asBigInteger(left).add(rightLibrary.asBigInteger(right)));
+        } catch (UnsupportedMessageException e) {
+            throw shouldNotReachHere(e);
+        }
     }
 
     /**
@@ -115,7 +132,7 @@ public abstract class SLAddNode extends SLBinaryNode {
      */
     @Specialization(guards = "isString(left, right)")
     @TruffleBoundary
-    protected TruffleString add(Object left, Object right,
+    protected TruffleString doString(Object left, Object right,
                     @Cached SLToTruffleStringNode toTruffleStringNodeLeft,
                     @Cached SLToTruffleStringNode toTruffleStringNodeRight,
                     @Cached TruffleString.ConcatNode concatNode) {

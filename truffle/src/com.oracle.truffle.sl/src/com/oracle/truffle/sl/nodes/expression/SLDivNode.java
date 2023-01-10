@@ -40,9 +40,14 @@
  */
 package com.oracle.truffle.sl.nodes.expression;
 
+import static com.oracle.truffle.api.CompilerDirectives.shouldNotReachHere;
+
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.sl.SLException;
 import com.oracle.truffle.sl.nodes.SLBinaryNode;
@@ -57,7 +62,7 @@ import com.oracle.truffle.sl.runtime.SLBigNumber;
 public abstract class SLDivNode extends SLBinaryNode {
 
     @Specialization(rewriteOn = ArithmeticException.class)
-    protected long div(long left, long right) throws ArithmeticException {
+    protected long doLong(long left, long right) throws ArithmeticException {
         long result = left / right;
         /*
          * The division overflows if left is Long.MIN_VALUE and right is -1.
@@ -70,8 +75,20 @@ public abstract class SLDivNode extends SLBinaryNode {
 
     @Specialization
     @TruffleBoundary
-    protected SLBigNumber div(SLBigNumber left, SLBigNumber right) {
+    protected SLBigNumber doSLBigInteger(SLBigNumber left, SLBigNumber right) {
         return new SLBigNumber(left.getValue().divide(right.getValue()));
+    }
+
+    @Specialization(replaces = "doSLBigInteger", guards = {"leftLibrary.fitsInBigInteger(left)", "rightLibrary.fitsInBigInteger(right)"}, limit = "3")
+    @TruffleBoundary
+    protected SLBigNumber doInteropBigInteger(Object left, Object right,
+                    @CachedLibrary("left") InteropLibrary leftLibrary,
+                    @CachedLibrary("right") InteropLibrary rightLibrary) {
+        try {
+            return new SLBigNumber(leftLibrary.asBigInteger(left).divide(rightLibrary.asBigInteger(right)));
+        } catch (UnsupportedMessageException e) {
+            throw shouldNotReachHere(e);
+        }
     }
 
     @Fallback

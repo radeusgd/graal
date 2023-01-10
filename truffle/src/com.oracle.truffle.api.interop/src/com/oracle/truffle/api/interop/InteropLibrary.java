@@ -3258,7 +3258,9 @@ public abstract class InteropLibrary extends Library {
             assert preCondition(receiver);
 
             boolean fits = delegate.fitsInBigInteger(receiver);
-            assert !fits || delegate.isNumber(receiver) : violationInvariant(receiver);
+            // TODO We cannot have this assert here because there is a compatibility flag that makes
+            // Java BigInteger return false from isNumber
+            // assert !fits || delegate.isNumber(receiver) : violationInvariant(receiver);
             if (fits) {
                 try {
                     delegate.asBigInteger(receiver);
@@ -3390,7 +3392,9 @@ public abstract class InteropLibrary extends Library {
             assert preCondition(receiver);
             try {
                 BigInteger result = delegate.asBigInteger(receiver);
-                assert delegate.isNumber(receiver) : violationInvariant(receiver);
+                // TODO we cannot have this assert here because there is a compatibility flag that
+                // makes Java BigInteger return false from is number
+                // assert delegate.isNumber(receiver) : violationInvariant(receiver);
                 assert delegate.fitsInBigInteger(receiver) : violationInvariant(receiver);
                 assert validProtocolReturn(receiver, result);
                 return result;
