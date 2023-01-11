@@ -41,6 +41,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.Executors;
@@ -190,8 +191,9 @@ public class ProgressReporter {
             builderIO = NativeImageSystemIOWrappers.singleton();
         }
 
-        if (SubstrateOptions.BuildOutputJSONFile.hasBeenSet(options)) {
-            jsonHelper = new ProgressReporterJsonHelper(SubstrateOptions.BuildOutputJSONFile.getValue(options));
+        Optional<Path> buildOutputJSONFile = SubstrateOptions.BuildOutputJSONFile.getValue(options).lastValue();
+        if (buildOutputJSONFile.isPresent()) {
+            jsonHelper = new ProgressReporterJsonHelper(buildOutputJSONFile.get());
         } else {
             jsonHelper = null;
         }
